@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        console.log('allKeysAndSymbols')
+        console.log('\n')
+        function allKeysAndSymbols (object) {
+            if (typeof object == 'object' && object instanceof Object && !(object instanceof Array)){
+                let arrayKeyAndSymbols = Object.getOwnPropertyNames(object);
+                function getKeysAndSymbols (arr, obj) {
+                    if (!obj) return arr;
+                    arr = [...arr, ...Object.getOwnPropertyNames(obj)];
+                    arr = [...arr, ...Object.getOwnPropertySymbols(obj)];
+                    return getKeysAndSymbols (arr, Object.getPrototypeOf(obj))
+                }
+                return getKeysAndSymbols([], object)
+            }
+            return 'Передан не объект'
+        }
+
+        const result = allKeysAndSymbols({})
+        console.log('Результат функции allKeysAndSymbols:')
+        console.log(result)
+        console.log('\n\n\n\n')
+    </script>
+
+    <script>
+        console.log('in, который игнорирует свойства прототипа')
+        console.log('\n')
+        const proto = { value: 42 };
+        const object = Object.create(proto);
+
+        Object.defineProperty(object, 'year', {
+            value: 2020,
+            writable: true,
+            configurable: true,
+            enumerable: false,
+        });
+
+        const symbol = Symbol('bazzinga');
+        object[symbol] = 42;
+
+        // без proxy
+        console.log('без proxy:')
+        console.log('value in object', 'value' in object); // true
+        console.log('year in object', 'year' in object); // true
+        console.log('symbol in object', symbol in object); // true
+        console.log('\n')
+
+
+        const proxy = new Proxy(object, {
+            has(target, prop, value){
+                return target.hasOwnProperty(prop)
+            }
+        });// реализация
+
+        // с proxy
+        console.log('с proxy:')
+        console.log('value in proxy', 'value' in proxy) // false
+        console.log('year in proxy', 'year' in proxy); // true
+        console.log('symbol in proxy', symbol in proxy); // true
+        console.log('\n\n\n\n')
+    </script>
+
+    <script type="module">
+        console.log('Велосипедная реализация Set')
+        class MySet {
+            constructor(arr) {
+                this.arr = [];
+                arr.forEach(el => {
+                    if (this.arr.indexOf(el) < 0) this.arr.push(el)
+                })
+            }
+            get size() {
+                return this.arr.length;
+            }
+            set size(val) {}
+            get() {
+                return this.arr;
+            }
+            clear() {
+                this.arr = [];
+            }
+            add(val) {
+                let index = this.arr.indexOf(val);
+                if (index < 0) {
+                    this.arr.push(val);
+                }
+                return this.arr;
+            }
+            delete(val) {
+                let index = this.arr.indexOf(val);
+                if (index > -1) {
+                    this.arr.splice(index, 1);
+                    return true;
+                }
+                return false;
+            }
+            has(val) {
+                let index = this.arr.indexOf(val);
+                if (index > -1) {
+                    return true;
+                }
+                return false
+            }
+            [Symbol.iterator] = () => {
+                return {
+                    arr: this.arr,
+                    i: 0,
+                    current: this.arr[this.i],
+                    last: this.arr[this.arr.length - 1],
+                    next() {
+                        if (this.i < this.arr.length) {
+                            return { done: false, value: this.arr[this.i++] };
+                        } else {
+                            return { done: true };
+                        }
+                    }
+                };
+            }
+            entries() {
+                    let entriesObj = {}
+                    entriesObj[Symbol.iterator] = () => {
+                        return {
+                            arr: this.arr,
+                            i: -1,
+                            current: this.arr[this.i],
+                            last: this.arr[this.arr.length - 1],
+                            next() {
+                                if (this.i < this.arr.length - 1) {
+                                    this.i++;
+                                    return { done: false, value: [this.arr[this.i], this.arr[this.i]] };
+                                } else {
+                                    return { done: true };
+                                }
+                            }
+                        };
+                    }
+                    return entriesObj
+            }
+            toString() {
+                return "[object MySet]";
+            }
+            [Symbol.toStringTag] = 'MySet';
+            // *
+            forEach(foo, obj) {
+                this.arr.forEach(el => {
+                    foo.call(obj, el);
+                })
+            }
+        }
+        
+        // Object.prototype.toString = function() { return "[object MySet]"};
+
+        // тесты
+        const set = new MySet([4, 8, 15, 15, 16, 23, 42]);
+
+        // хранит только уникальные значения
+        console.log([...set]); // [ 4, 8, 15, 16, 23, 42 ]
+
+        // есть свойство size
+        console.log('set.size', set.size); // 6
+        console.log('\n')
+
+        // работает в цикле for-of
+        console.log('const item of set')
+        for (const item of set) {
+            console.log(item); // 4 8 15 16 23 42
+        }
+        console.log('\n')
+
+        // есть методы keys, values, entries
+        console.log('const item of set.entries()')
+        for (const item of set.entries()) {
+            console.log(item); // [ 4, 4 ] [ 8, 8 ] ...
+        }
+        console.log('\n')
+
+        // есть метод clear
+        console.log('set.clear')
+        set.clear();
+        console.log('set.size', set.size); // 0
+        console.log('\n')
+
+        const object2 = {
+            getValue () { return this.value }
+        }
+
+        const data = {
+            value: 42
+        }
+
+        // есть метод add
+        console.log('set.add(object2)')
+        set.add(object2);
+        console.log('set.add(data)')
+        set.add(data);
+        console.log(set.add(data));
+        console.log('\n')
+
+        // есть метод delete
+        console.log('set.delete(data)');
+        set.delete(data)
+        console.log('set.delete(data)');
+        set.delete(data)
+        console.log('\n')
+
+        // есть метод has
+        console.log('set.has({})');
+        console.log(set.has({})); // false
+        console.log('set.has(object2)');
+        console.log(set.has(object2)); // true
+        console.log('set.has(data)');
+        console.log(set.has(data)); // false
+        console.log('\n')
+
+        // и кое-что еще
+        console.log('set === set.valueOf()')
+        console.log(set === set.valueOf()) // true
+        console.log('String(set)')
+        console.log(String(set)) // [object MySet]
+        console.log('Object.prototype.toString.call(set)')
+        console.log(Object.prototype.toString.call(set)) // [object MySet]
+        console.log('\n\n')
+
+        // задание со звездочкой *
+        // есть forEach, который делает какие-то странные вещи...
+        console.log('задание со звездочкой forEach')
+        set.forEach(function (item) {
+            console.log(item.getValue.call(this)); // 42
+        }, data)
+    </script>
+</body>
+</html>
