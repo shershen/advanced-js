@@ -12,11 +12,9 @@
         console.log('\n')
         function allKeysAndSymbols (object) {
             if (typeof object == 'object' && object instanceof Object && !(object instanceof Array)){
-                let arrayKeyAndSymbols = Object.getOwnPropertyNames(object);
                 function getKeysAndSymbols (arr, obj) {
                     if (!obj) return arr;
-                    arr = [...arr, ...Object.getOwnPropertyNames(obj)];
-                    arr = [...arr, ...Object.getOwnPropertySymbols(obj)];
+                    arr = [...arr, ...Object.getOwnPropertyNames(obj), ...Object.getOwnPropertySymbols(obj)];
                     return getKeysAndSymbols (arr, Object.getPrototypeOf(obj))
                 }
                 return getKeysAndSymbols([], object)
